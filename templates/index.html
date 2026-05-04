@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>中转协议取证台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">本地协议检测仪表盘</p>
+          <h1>中转协议取证台</h1>
+          <p class="hero-text">
+            直接在浏览器里探测中转站，对比不同端点的协议行为，并把每一条让目标看起来像原生、可疑或明显被包装过的证据摊开给你看。
+          </p>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-score" id="hero-score">-- / --</div>
+          <div class="hero-verdict" id="hero-verdict">等待检测</div>
+          <div class="hero-meta" id="hero-meta">先填入中转地址、密钥和模型，再开始检测。</div>
+        </div>
+      </header>
+
+      <main class="dashboard">
+        <section class="control-panel panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">输入区</p>
+              <h2>发起一次中转检测</h2>
+            </div>
+            <div class="status-pill" id="request-state">空闲</div>
+          </div>
+
+          <form id="check-form" class="control-grid">
+            <label class="field field-wide">
+              <span>基础地址</span>
+              <input id="base-url" name="base_url" type="url" placeholder="https://relay.example.com" required>
+            </label>
+
+            <label class="field field-wide api-key-field">
+              <span>API 密钥</span>
+              <div class="key-input-wrap">
+                <input id="api-key" name="api_key" type="password" placeholder="sk-..." required>
+                <button id="toggle-key" class="ghost-button" type="button">显示</button>
+              </div>
+            </label>
+
+            <label class="field">
+              <span>模型列表</span>
+              <select id="model-select">
+                <option value="">先拉取模型列表</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>模型覆盖输入</span>
+              <input id="model-input" name="model" type="text" placeholder="gpt-5.4" required>
+            </label>
+
+            <label class="field field-compact">
+              <span>超时（秒）</span>
+              <input id="timeout" name="timeout" type="number" min="1" value="30" required>
+            </label>
+
+            <label class="toggle-field">
+              <span>包含流式探针</span>
+              <input id="stream" name="stream" type="checkbox" checked>
+            </label>
+
+            <div class="action-row field-wide">
+              <button id="load-models" class="secondary-button" type="button">获取模型</button>
+              <button id="run-check" class="primary-button" type="submit">开始检测</button>
+            </div>
+          </form>
+
+          <div id="form-message" class="inline-message">你随时都可以手动输入模型名，不会被下拉列表覆盖。</div>
+        </section>
+
+        <section id="summary-panel" class="summary-panel panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">总览</p>
+              <h2>整体判断</h2>
+            </div>
+          </div>
+
+          <div class="summary-grid">
+            <div class="summary-card summary-card-score">
+              <span class="summary-label">得分</span>
+              <strong id="summary-score">-- / --</strong>
+              <p id="summary-percent">尚未检测</p>
+            </div>
+            <div class="summary-card">
+              <span class="summary-label">结论</span>
+              <strong id="summary-verdict">等待检测</strong>
+              <p id="summary-target">目标：--</p>
+            </div>
+            <div class="summary-card">
+              <span class="summary-label">检测上下文</span>
+              <strong id="summary-model">模型：--</strong>
+              <p id="summary-timestamp">检测时间：--</p>
+            </div>
+          </div>
+
+          <div id="summary-banner" class="summary-banner">
+            先填好中转信息，再运行一次检测，结果会直接铺满整个仪表盘。
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">探针矩阵</p>
+              <h2>端点诊断</h2>
+            </div>
+          </div>
+
+          <div id="probe-grid" class="probe-grid"></div>
+        </section>
+
+        <section id="details-panel" class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">详细检查</p>
+              <h2>逐条证据</h2>
+            </div>
+          </div>
+          <div id="details-content" class="details-content">
+            <div class="empty-state">
+              <strong>还没有探针结果。</strong>
+              <p>检测完成后，这里会按 probe 分组列出每一条通过或失败的检查，以及对应的诊断细节。</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>
