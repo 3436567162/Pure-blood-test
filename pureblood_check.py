@@ -332,10 +332,9 @@ def extract_models_payload(base_url: str, payload: Any) -> dict[str, Any]:
 
 
 def fetch_models(base_url: str, api_key: str, timeout: int = 30) -> dict[str, Any]:
-    status, body, error = post_json(
+    status, body, error = get_json(
         endpoint_url(base_url, "/models"),
         {"Authorization": f"Bearer {api_key}"},
-        {},
         timeout,
     )
     if error:
@@ -367,6 +366,15 @@ def post_json(url: str, headers: dict[str, str], payload: dict[str, Any], timeou
     requests = _require_requests()
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=timeout)
+        return response.status_code, _safe_json(response), ""
+    except Exception as exc:
+        return 0, None, str(exc)
+
+
+def get_json(url: str, headers: dict[str, str], timeout: int) -> tuple[int, Any, str]:
+    requests = _require_requests()
+    try:
+        response = requests.get(url, headers=headers, timeout=timeout)
         return response.status_code, _safe_json(response), ""
     except Exception as exc:
         return 0, None, str(exc)

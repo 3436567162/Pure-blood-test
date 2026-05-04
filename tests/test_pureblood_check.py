@@ -10,6 +10,7 @@ from pureblood_check import (
     compute_totals,
     endpoint_url,
     extract_models_payload,
+    fetch_models,
     inspect_chat_success_payload,
     inspect_error_payload,
     inspect_responses_success_payload,
@@ -269,3 +270,32 @@ def test_extract_models_payload_flattens_model_ids():
     assert payload["target"] == "https://relay.example.com/v1"
     assert payload["models"][0]["id"] == "gpt-5.4"
     assert payload["models"][1]["id"] == "gpt-4.1"
+
+
+def test_fetch_models_uses_get_request(monkeypatch):
+    class FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return {
+                "data": [
+                    {"id": "gpt-5.4", "type": "model"},
+                ]
+            }
+
+    class FakeRequests:
+        def get(self, url, headers, timeout):
+            assert url == "https://relay.example.com/v1/models"
+            assert headers["Authorization"] == "Bearer sk-test"
+            assert timeout == 9
+            return FakeResponse()
+
+        def post(self, *args, **kwargs):
+            raise AssertionError("fetch_models should not use POST")
+
+    monkeypatch.setattr("pureblood_check._require_requests", lambda: FakeRequests())
+
+    payload = fetch_models("https://relay.example.com/v1", "sk-test", timeout=9)
+
+    assert payload["ok"] is True
+    assert payload["models"][0]["id"] == "gpt-5.4"
