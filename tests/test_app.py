@@ -3,7 +3,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app import create_app
+import pytest
+
+from app import choose_available_port, create_app, main
 
 
 def test_check_endpoint_returns_structured_report():
@@ -92,3 +94,55 @@ def test_index_route_includes_frontend_mount_points():
     assert 'id="summary-panel"' in body
     assert 'id="probe-grid"' in body
     assert 'id="details-panel"' in body
+
+
+def test_choose_available_port_prefers_requested_port():
+    selected = choose_available_port(
+        start_port=5000,
+        max_attempts=3,
+        port_available=lambda host, port: port == 5000,
+    )
+
+    assert selected == 5000
+
+
+def test_choose_available_port_falls_forward_when_preferred_port_is_busy():
+    selected = choose_available_port(
+        start_port=5000,
+        max_attempts=4,
+        port_available=lambda host, port: port == 5002,
+    )
+
+    assert selected == 5002
+
+
+def test_choose_available_port_raises_when_no_port_is_free():
+    with pytest.raises(RuntimeError):
+        choose_available_port(
+            start_port=5000,
+            max_attempts=2,
+            port_available=lambda host, port: False,
+        )
+
+
+def test_main_runs_app_on_selected_port():
+    messages = []
+
+    class FakeApp:
+        def __init__(self):
+            self.calls = []
+
+        def run(self, host, port, debug):
+            self.calls.append({"host": host, "port": port, "debug": debug})
+
+    fake_app = FakeApp()
+
+    selected_port = main(
+        app_factory=lambda: fake_app,
+        port_selector=lambda host, start_port, max_attempts: 5003,
+        printer=messages.append,
+    )
+
+    assert selected_port == 5003
+    assert fake_app.calls == [{"host": "127.0.0.1", "port": 5003, "debug": False}]
+    assert messages == ["Server running at http://127.0.0.1:5003/"]

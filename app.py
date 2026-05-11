@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import socket
 from flask import Flask, jsonify, render_template, request
 
 from pureblood_check import fetch_models, normalize_base_url, run_report
@@ -59,5 +60,44 @@ def create_app(probe_service=None, models_service=None) -> Flask:
     return app
 
 
+def is_port_available(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind((host, port))
+        except OSError:
+            return False
+    return True
+
+
+def choose_available_port(
+    host: str = "127.0.0.1",
+    start_port: int = 5000,
+    max_attempts: int = 20,
+    port_available=is_port_available,
+) -> int:
+    for offset in range(max_attempts):
+        port = start_port + offset
+        if port_available(host, port):
+            return port
+    raise RuntimeError(
+        f"No available port found between {start_port} and {start_port + max_attempts - 1}."
+    )
+
+
+def main(
+    host: str = "127.0.0.1",
+    start_port: int = 5000,
+    max_attempts: int = 20,
+    app_factory=create_app,
+    port_selector=choose_available_port,
+    printer=print,
+) -> int:
+    port = port_selector(host=host, start_port=start_port, max_attempts=max_attempts)
+    printer(f"Server running at http://{host}:{port}/")
+    app_factory().run(host=host, port=port, debug=False)
+    return port
+
+
 if __name__ == "__main__":
-    create_app().run(debug=True, port=5000)
+    main()
